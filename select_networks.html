@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Networks</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #56ba32; /* Banner and navigation bar color */
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px; /* Rounded corners */
+        }
+        .navbar img {
+            height: 70px; /* Increased height for a bigger logo */
+            margin-right: 0; /* Remove margin between images */
+        }
+        .navbar img + img {
+            margin-left: 5px; /* Minimal gap between images */
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 10px;
+        }
+        .navbar .small-text {
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: right;
+            width: 100%;
+        }
+        .sidebar {
+            background-color: #56ba32; /* Navigation bar color */
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
+            width: 200px;
+            border-radius: 8px; /* Rounded corners */
+            margin-top: 10px; /* Gap between the banner and navigation bar */
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            margin: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #8bc34a;
+            padding-left: 10px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px; /* Rounded corners */
+            margin-top: 20px;
+        }
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            min-width: 300px;
+        }
+        .search-box {
+            padding: 5px;
+            margin-bottom: 10px;
+            width: 100%;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .no-results {
+            padding: 10px;
+            color: #dc3545;
+            display: none;
+        }
+        .dropdown-item-container {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .form-check {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://meraki.cisco.com/wp-content/uploads/2021/05/meraki-og-default.png" alt="Cisco Meraki Logo">
+        <img src="https://www.cisco.com/c/dam/m/en_us/customer-experience/images/cx-color-logo.png" alt="Cisco Logo">
+        <div class="text-container">
+            <h2>Meraki Configuration Compliance Tool</h2>
+            <div class="small-text">developed by Alex Pavlock</div>
+        </div>
+    </div>
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('orgs') }}">Organizations</a>
+        <a href="{{ url_for('compliance_checks') }}">Compliance Checks</a>
+        <a href="{{ url_for('select_networks') }}">Select Networks</a>
+        <a href="{{ url_for('generate_report_route') }}">Generate Report</a>
+    </div>
+    <div class="content">
+        <h1 class="mt-5">Select Networks</h1>
+        <form method="POST">
+            {% for org_id, networks in org_networks.items() %}
+            <div class="form-group">
+                <label for="golden_image_{{ org_id }}">Select Golden Image Network for {{ org_names[org_id] }}</label>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="goldenDropdown_{{ org_id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select Golden Image Network
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="goldenDropdown_{{ org_id }}">
+                        <input type="text" class="search-box" id="goldenSearch_{{ org_id }}" placeholder="Search networks..." onkeyup="searchNetworks('{{ org_id }}', 'golden')">
+                        <div id="noGoldenResults_{{ org_id }}" class="no-results">No networks found matching search.</div>
+                        <div class="dropdown-item-container">
+                        <!-- Templates first - alphabetically sorted -->
+                        {% if org_templates[org_id] and org_templates[org_id]|length > 0 %}
+                        <div class="dropdown-header">Templates</div>
+                        {% for template in org_templates[org_id]|sort(attribute='name') %}
+                        <div class="form-check golden-network-item_{{ org_id }}">
+                            <input class="form-check-input" type="radio" name="golden_image_{{ org_id }}" 
+                                   id="golden_image_{{ org_id }}_{{ template['id'] }}" value="{{ template['id'] }}" 
+                                   onchange="updateSelection('{{ org_id }}', '{{ template['name'] }} (Template)', 'golden')">
+                            <label class="form-check-label" for="golden_image_{{ org_id }}_{{ template['id'] }}">
+                                {{ template['name'] }} <span class="badge badge-primary">Template</span>
+                            </label>
+                            <input type="hidden" name="template_ids" value="{{ template['id'] }}">
+                        </div>
+                        {% endfor %}
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-header">Networks</div>
+                        {% endif %}
+                        
+                        <!-- Regular networks - alphabetically sorted -->
+                        {% for network in networks|sort(attribute='name') %}
+                        <div class="form-check golden-network-item_{{ org_id }}">
+                            <input class="form-check-input" type="radio" name="golden_image_{{ org_id }}" 
+                                   id="golden_image_{{ org_id }}_{{ network['id'] }}" value="{{ network['id'] }}" 
+                                   onchange="updateSelection('{{ org_id }}', '{{ network['name'] }}', 'golden')">
+                            <label class="form-check-label" for="golden_image_{{ org_id }}_{{ network['id'] }}">
+                                {{ network['name'] }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    </div>
+                </div>
+                <div id="golden_selection_{{ org_id }}" class="mt-2"></div>
+            </div>
+            <div class="form-group">
+                <label for="compliance_networks_{{ org_id }}">Select Networks for Compliance Check for {{ org_names[org_id] }}</label>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="complianceDropdown_{{ org_id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select Networks for Compliance Check
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="complianceDropdown_{{ org_id }}">
+                        <input type="text" class="search-box" id="complianceSearch_{{ org_id }}" placeholder="Search networks..." onkeyup="searchNetworks('{{ org_id }}', 'compliance')">
+                        <div id="noComplianceResults_{{ org_id }}" class="no-results">No networks found matching search.</div>
+                        <div class="dropdown-item-container">
+                        <!-- Templates first - alphabetically sorted -->
+                        {% if org_templates[org_id] and org_templates[org_id]|length > 0 %}
+                        <div class="dropdown-header">Templates</div>
+                        {% for template in org_templates[org_id]|sort(attribute='name') %}
+                        <div class="form-check compliance-network-item_{{ org_id }}">
+                            <input class="form-check-input" type="checkbox" name="compliance_networks_{{ org_id }}" 
+                                   id="compliance_networks_{{ org_id }}_{{ template['id'] }}" value="{{ template['id'] }}" 
+                                   onchange="updateSelection('{{ org_id }}', '{{ template['name'] }}', 'compliance')">
+                            <label class="form-check-label" for="compliance_networks_{{ org_id }}_{{ template['id'] }}">
+                                {{ template['name'] }} <span class="badge badge-primary">Template</span>
+                            </label>
+                            <input type="hidden" name="template_ids" value="{{ template['id'] }}">
+                        </div>
+                        {% endfor %}
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-header">Networks</div>
+                        {% endif %}
+                        
+                        <!-- Regular networks - alphabetically sorted -->
+                        {% for network in networks|sort(attribute='name') %}
+                        <div class="form-check compliance-network-item_{{ org_id }}">
+                            <input class="form-check-input" type="checkbox" name="compliance_networks_{{ org_id }}" 
+                                   id="compliance_networks_{{ org_id }}_{{ network['id'] }}" value="{{ network['id'] }}" 
+                                   onchange="updateSelection('{{ org_id }}', '{{ network['name'] }}', 'compliance')">
+                            <label class="form-check-label" for="compliance_networks_{{ org_id }}_{{ network['id'] }}">
+                                {{ network['name'] }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item" onclick="selectAll('{{ org_id }}')">Select All</button>
+                        <button type="button" class="dropdown-item" onclick="selectVisible('{{ org_id }}')">Select Visible</button>
+                        <button type="button" class="dropdown-item" onclick="unselectAll('{{ org_id }}')">Unselect All</button>
+                    </div>
+                </div>
+                <div id="compliance_selection_{{ org_id }}" class="mt-2"></div>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-success w-100">Run Compliance Report</button>
+        </form>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        function updateSelection(org_id, network_name, type) {
+            if (type === 'golden') {
+                document.getElementById(`golden_selection_${org_id}`).innerText = `Selected Golden Image Network: ${network_name}`;
+                // Close the dropdown
+                document.getElementById(`goldenDropdown_${org_id}`).click();
+            } else if (type === 'compliance') {
+                const selectedNetworks = [];
+                document.querySelectorAll(`input[name="compliance_networks_${org_id}"]:checked`).forEach(checkbox => {
+                    selectedNetworks.push(checkbox.nextElementSibling.innerText);
+                });
+                document.getElementById(`compliance_selection_${org_id}`).innerText = `Selected Networks for Compliance Check: ${selectedNetworks.join(', ')}`;
+            }
+        }
+
+                    // Update searchNetworks to include templates in search
+            function searchNetworks(org_id, type) {
+                const searchBox = document.getElementById(`${type}Search_${org_id}`);
+                const filter = searchBox.value.toUpperCase();
+                const networkItems = document.querySelectorAll(`.${type}-network-item_${org_id}`);
+                let visibleCount = 0;
+                
+                networkItems.forEach(item => {
+                    const label = item.querySelector('label');
+                    const txtValue = label.textContent || label.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        item.style.display = "";
+                        visibleCount++;
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+                
+                // Show "no results" message if needed
+                const noResultsElement = document.getElementById(`no${type.charAt(0).toUpperCase() + type.slice(1)}Results_${org_id}`);
+                if (visibleCount === 0 && filter !== '') {
+                    noResultsElement.style.display = "block";
+                } else {
+                    noResultsElement.style.display = "none";
+                }
+            }
+
+        function selectAll(org_id) {
+            const checkboxes = document.querySelectorAll(`input[name="compliance_networks_${org_id}"]`);
+            checkboxes.forEach(checkbox => checkbox.checked = true);
+            updateSelection(org_id, '', 'compliance');
+        }
+
+        function selectVisible(org_id) {
+            const visibleCheckboxes = document.querySelectorAll(`.compliance-network-item_${org_id}:not([style*="display: none"]) input[type="checkbox"]`);
+            visibleCheckboxes.forEach(checkbox => checkbox.checked = true);
+            updateSelection(org_id, '', 'compliance');
+        }
+
+        function unselectAll(org_id) {
+            const checkboxes = document.querySelectorAll(`input[name="compliance_networks_${org_id}"]`);
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            updateSelection(org_id, '', 'compliance');
+        }
+
+        // Prevent dropdown from closing when clicking inside
+        document.querySelectorAll('.dropdown-menu').forEach(function(dropdown) {
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        // Auto-focus search boxes when dropdowns are opened
+        document.addEventListener('DOMContentLoaded', function() {
+            // For each organization's golden dropdown
+            document.querySelectorAll('[id^="goldenDropdown_"]').forEach(function(dropdown) {
+                dropdown.addEventListener('shown.bs.dropdown', function() {
+                    const org_id = this.id.split('_')[1];
+                    document.getElementById(`goldenSearch_${org_id}`).focus();
+                });
+            });
+
+            // For each organization's compliance dropdown
+            document.querySelectorAll('[id^="complianceDropdown_"]').forEach(function(dropdown) {
+                dropdown.addEventListener('shown.bs.dropdown', function() {
+                    const org_id = this.id.split('_')[1];
+                    document.getElementById(`complianceSearch_${org_id}`).focus();
+                });
+            });
+        });
+        // Add click handlers directly to the dropdown toggle buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // For all golden dropdown buttons
+            document.querySelectorAll('[id^="goldenDropdown_"]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const org_id = this.id.split('_')[1];
+                    // Use setTimeout to allow the dropdown to open first
+                    setTimeout(function() {
+                        const searchBox = document.getElementById(`goldenSearch_${org_id}`);
+                        if (searchBox) {
+                            searchBox.focus();
+                        }
+                    }, 50);
+                });
+            });
+
+            // For all compliance dropdown buttons
+            document.querySelectorAll('[id^="complianceDropdown_"]').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    const org_id = this.id.split('_')[1];
+                    // Use setTimeout to allow the dropdown to open first
+                    setTimeout(function() {
+                        const searchBox = document.getElementById(`complianceSearch_${org_id}`);
+                        if (searchBox) {
+                            searchBox.focus();
+                        }
+                    }, 50);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

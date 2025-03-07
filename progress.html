@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generating Report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #56ba32;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 0;
+        }
+        .navbar img + img {
+            margin-left: 5px;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 10px;
+        }
+        .navbar .small-text {
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: right;
+            width: 100%;
+        }
+        .content {
+            margin: 20px auto;
+            max-width: 800px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .progress {
+            height: 30px;
+            margin: 20px 0;
+        }
+        #status-message {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+        .home-button {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://meraki.cisco.com/wp-content/uploads/2021/05/meraki-og-default.png" alt="Cisco Meraki Logo">
+        <img src="https://www.cisco.com/c/dam/m/en_us/customer-experience/images/cx-color-logo.png" alt="Cisco Logo">
+        <div class="text-container">
+            <h2>Meraki Configuration Compliance Tool</h2>
+            <div class="small-text">developed by Alex Pavlock</div>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1 class="text-center">Generating Compliance Report</h1>
+        
+        <!-- Home button at the top of the content area -->
+        <div class="home-button">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+        
+        <div class="progress">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%"></div>
+        </div>
+        <div id="status-message" class="text-center">Initializing...</div>
+        
+        <div id="download-section" class="text-center mt-4 hidden">
+            <h3>Report Generation Complete!</h3>
+            <p>Your report is ready to download.</p>
+            <a href="{{ url_for('download_report') }}" class="btn btn-success btn-lg mt-3">Download Report</a>
+        </div>
+        
+        <div id="error-section" class="text-center mt-4 hidden">
+            <h3>Error Generating Report</h3>
+            <p id="error-message" class="text-danger"></p>
+            <a href="{{ url_for('select_networks') }}" class="btn btn-primary mt-3">Back to Network Selection</a>
+        </div>
+    </div>
+
+    <script>
+        // Check status every 2 seconds
+        const checkStatus = () => {
+            fetch('/check_report_status')
+                .then(response => response.json())
+                .then(data => {
+                    const progressBar = document.getElementById('progress-bar');
+                    const statusMessage = document.getElementById('status-message');
+                    const downloadSection = document.getElementById('download-section');
+                    const errorSection = document.getElementById('error-section');
+                    const errorMessage = document.getElementById('error-message');
+                    
+                    // Update progress bar
+                    progressBar.style.width = `${data.progress}%`;
+                    
+                    // Update status message
+                    statusMessage.textContent = data.message;
+                    
+                    // Show download button when completed
+                    if (data.status === 'completed') {
+                        downloadSection.classList.remove('hidden');
+                        // Stop polling
+                        clearInterval(checkInterval);
+                    }
+                    
+                    // Show error message if failed
+                    if (data.status === 'failed') {
+                        errorSection.classList.remove('hidden');
+                        errorMessage.textContent = data.message;
+                        // Stop polling
+                        clearInterval(checkInterval);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                });
+        };
+        
+        // Initial check
+        checkStatus();
+        
+        // Set up interval for checking status
+        const checkInterval = setInterval(checkStatus, 2000);
+    </script>
+</body>
+</html>

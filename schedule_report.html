@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Schedule Report</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #56ba32;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 0;
+        }
+        .navbar img + img {
+            margin-left: 5px;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 10px;
+        }
+        .navbar .small-text {
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: right;
+            width: 100%;
+        }
+        .sidebar {
+            background-color: #56ba32;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
+            width: 200px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            margin: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #8bc34a;
+            padding-left: 10px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .scheduling-options {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://meraki.cisco.com/wp-content/uploads/2021/05/meraki-og-default.png" alt="Cisco Meraki Logo">
+        <img src="https://www.cisco.com/c/dam/m/en_us/customer-experience/images/cx-color-logo.png" alt="Cisco Logo">
+        <div class="text-container">
+            <h2>Meraki Configuration Compliance Tool</h2>
+            <div class="small-text">developed by Alex Pavlock</div>
+        </div>
+    </div>
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('orgs') }}">Organizations</a>
+        <a href="{{ url_for('compliance_checks') }}">Compliance Checks</a>
+        <a href="{{ url_for('select_networks') }}">Select Networks</a>
+        <a href="{{ url_for('schedule_report') }}">Schedule Report</a>
+    </div>
+    <div class="content">
+        <h1 class="mt-5">Schedule Compliance Report</h1>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label>Choose an option:</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="schedule_option" id="run_now" value="run_now" checked onchange="toggleScheduleOptions()">
+                    <label class="form-check-label" for="run_now">
+                        Run the report now
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="schedule_option" id="schedule" value="schedule" onchange="toggleScheduleOptions()">
+                    <label class="form-check-label" for="schedule">
+                        Schedule the report
+                    </label>
+                </div>
+            </div>
+            
+            <div id="scheduling-options" class="scheduling-options">
+                <div class="form-group">
+                    <label for="frequency">Frequency:</label>
+                    <select class="form-control" id="frequency" name="frequency" onchange="toggleFrequencyOptions()">
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every Two Weeks</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="day-of-week-group">
+                    <label for="day_of_week">Day of Week:</label>
+                    <select class="form-control" id="day_of_week" name="day_of_week">
+                        <option value="0">Monday</option>
+                        <option value="1">Tuesday</option>
+                        <option value="2">Wednesday</option>
+                        <option value="3">Thursday</option>
+                        <option value="4">Friday</option>
+                        <option value="5">Saturday</option>
+                        <option value="6">Sunday</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="day-of-month-group" style="display: none;">
+                    <label for="day_of_month">Day of Month:</label>
+                    <select class="form-control" id="day_of_month" name="day_of_month">
+                        {% for day in range(1, 29) %}
+                        <option value="{{ day }}">{{ day }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="time">Time (24-hour format):</label>
+                    <input type="time" class="form-control" id="time" name="time" value="00:00">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address for Reports:</label>
+                    <input type="email" class="form-control" id="email" name="email">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-success w-100">Continue</button>
+        </form>
+    </div>
+    
+    <script>
+        function toggleScheduleOptions() {
+            const scheduleOptions = document.getElementById('scheduling-options');
+            const isScheduled = document.getElementById('schedule').checked;
+            scheduleOptions.style.display = isScheduled ? 'block' : 'none';
+            document.getElementById('email').required = isScheduled;
+        }
+        
+        function toggleFrequencyOptions() {
+            const frequency = document.getElementById('frequency').value;
+            const dayOfWeekGroup = document.getElementById('day-of-week-group');
+            const dayOfMonthGroup = document.getElementById('day-of-month-group');
+            
+            if (frequency === 'monthly') {
+                dayOfWeekGroup.style.display = 'none';
+                dayOfMonthGroup.style.display = 'block';
+            } else {
+                dayOfWeekGroup.style.display = 'block';
+                dayOfMonthGroup.style.display = 'none';
+            }
+        }
+        
+        // Initialize form display
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleScheduleOptions();
+            toggleFrequencyOptions();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Schedule Confirmation</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #56ba32;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+        }
+        .navbar img {
+            height: 70px;
+            margin-right: 0;
+        }
+        .navbar img + img {
+            margin-left: 5px;
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 10px;
+        }
+        .navbar .small-text {
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: right;
+            width: 100%;
+        }
+        .sidebar {
+            background-color: #56ba32;
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
+            width: 200px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            margin: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #8bc34a;
+            padding-left: 10px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://meraki.cisco.com/wp-content/uploads/2021/05/meraki-og-default.png" alt="Cisco Meraki Logo">
+        <img src="https://www.cisco.com/c/dam/m/en_us/customer-experience/images/cx-color-logo.png" alt="Cisco Logo">
+        <div class="text-container">
+            <h2>Meraki Configuration Compliance Tool</h2>
+            <div class="small-text">developed by Alex Pavlock</div>
+        </div>
+    </div>
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('orgs') }}">Organizations</a>
+        <a href="{{ url_for('compliance_checks') }}">Compliance Checks</a>
+        <a href="{{ url_for('select_networks') }}">Select Networks</a>
+        <a href="{{ url_for('schedule_report') }}">Schedule Report</a>
+    </div>
+    <div class="content">
+        <h1 class="mt-5">Schedule Confirmation</h1>
+        
+        <div class="alert alert-success" role="alert">
+            Your report has been scheduled successfully!
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Schedule Details
+            </div>
+            <div class="card-body">
+                <p><strong>Frequency:</strong> 
+                    {% if schedule_data.frequency == 'weekly' %}
+                        Weekly
+                    {% elif schedule_data.frequency == 'biweekly' %}
+                        Every Two Weeks
+                    {% elif schedule_data.frequency == 'monthly' %}
+                        Monthly
+                    {% endif %}
+                </p>
+                
+                {% if schedule_data.frequency != 'monthly' %}
+                <p><strong>Day of Week:</strong>
+                    {% if schedule_data.day_of_week == '0' %}Monday
+                    {% elif schedule_data.day_of_week == '1' %}Tuesday
+                    {% elif schedule_data.day_of_week == '2' %}Wednesday
+                    {% elif schedule_data.day_of_week == '3' %}Thursday
+                    {% elif schedule_data.day_of_week == '4' %}Friday
+                    {% elif schedule_data.day_of_week == '5' %}Saturday
+                    {% elif schedule_data.day_of_week == '6' %}Sunday
+                    {% endif %}
+                </p>
+                {% else %}
+                <p><strong>Day of Month:</strong> {{ schedule_data.day_of_month }}</p>
+                {% endif %}
+                
+                <p><strong>Time:</strong> {{ schedule_data.time }}</p>
+                <p><strong>Email:</strong> {{ schedule_data.email }}</p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Return to Home</a>
+        </div>
+    </div>
+</body>
+</html>

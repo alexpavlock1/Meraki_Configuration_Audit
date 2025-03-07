@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Compliance Checks</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #56ba32; /* Banner and navigation bar color */
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-radius: 8px; /* Rounded corners */
+        }
+        .navbar img {
+            height: 70px; /* Increased height for a bigger logo */
+            margin-right: 0; /* Remove margin between images */
+        }
+        .navbar img + img {
+            margin-left: 5px; /* Minimal gap between images */
+        }
+        .navbar h2 {
+            margin: 0;
+        }
+        .navbar .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-left: 10px;
+        }
+        .navbar .small-text {
+            font-size: 10px;
+            margin-top: 5px;
+            text-align: right;
+            width: 100%;
+        }
+        .sidebar {
+            background-color: #56ba32; /* Navigation bar color */
+            color: white;
+            height: 100vh;
+            padding: 20px;
+            position: fixed;
+            width: 200px;
+            border-radius: 8px; /* Rounded corners */
+            margin-top: 10px; /* Gap between the banner and navigation bar */
+        }
+        .sidebar a {
+            color: white;
+            display: block;
+            margin: 10px 0;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #8bc34a;
+            padding-left: 10px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px; /* Rounded corners */
+            margin-top: 20px;
+        }
+        .form-check {
+            margin-bottom: 10px;
+        }
+        .select-all-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .dropdown-menu {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .btn-custom {
+            background-color: #333333; /* Dark grey for the submit button */
+            color: white;
+        }
+        .btn-custom:hover {
+            background-color: #2b2b2b; /* Even darker grey for hover effect */
+        }
+        .octet-options {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="https://meraki.cisco.com/wp-content/uploads/2021/05/meraki-og-default.png" alt="Cisco Meraki Logo">
+        <img src="https://www.cisco.com/c/dam/m/en_us/customer-experience/images/cx-color-logo.png" alt="Cisco Logo">
+        <div class="text-container">
+            <h2>Meraki Configuration Compliance Tool</h2>
+            <div class="small-text">developed by Alex Pavlock</div>
+        </div>
+    </div>
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('orgs') }}">Organizations</a>
+        <a href="{{ url_for('compliance_checks') }}">Compliance Checks</a>
+        <a href="{{ url_for('select_networks') }}">Select Networks</a>
+        <a href="{{ url_for('generate_report_route') }}">Generate Report</a>
+    </div>
+    <div class="content">
+        <h1 class="mt-5">Select Compliance Checks</h1>
+        <form method="POST" action="{{ url_for('compliance_checks') }}">
+            <div class="form-group">
+                <label for="mx_checks">MX Checks</label>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="mxDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select MX Checks
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="mxDropdown">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check1"  value="getNetworkApplianceConnectivityMonitoringDestinations">
+                            <label  class="form-check-label"  for="mx_check1">Connectivity Monitoring Destinations</label>
+                         </div>
+                        <div class="form-check">
+                            <input  class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check2" value="getNetworkApplianceContentFiltering">
+                            <label class="form-check-label" for="mx_check2">Content Filtering</label>
+                        </div>
+                        <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check27" value="getNetworkApplianceFirewallSettings">
+                        <label class="form-check-label" for="mx_check27">Spoofing Protection</label>
+                    </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check3" value="getNetworkApplianceFirewallCellularFirewallRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check3">Cellular Firewall Rules</label>
+                        </div>
+                        <div class="octet-options" id="cellular_firewall_octets">
+                            <div class="form-group">
+                                <label for="cellular_firewall_source_octet">Cellular Firewall Source IP Octet</label>
+                                <select class="form-control" id="cellular_firewall_source_octet" name="cellular_firewall_source_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cellular_firewall_destination_octet">Cellular Firewall Destination IP Octet</label>
+                                <select class="form-control" id="cellular_firewall_destination_octet" name="cellular_firewall_destination_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check28" value="getNetworkApplianceFirewallInboundCellularFirewallRules">
+                            <label class="form-check-label" for="mx_check28">Inbound Cellular Firewall Rules</label>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check4" value="getNetworkApplianceFirewallL3FirewallRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check4">L3 Firewall Rules</label>
+                        </div>
+                        <div class="octet-options" id="l3_firewall_octets">
+                            <div class="form-group">
+                                <label for="l3_firewall_source_octet">L3 Firewall Source IP Octet</label>
+                                <select class="form-control" id="l3_firewall_source_octet" name="l3_firewall_source_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="l3_firewall_destination_octet">L3 Firewall Destination IP Octet</label>
+                                <select class="form-control" id="l3_firewall_destination_octet" name="l3_firewall_destination_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check5" value="getNetworkApplianceFirewallFirewalledServices">
+                            <label class="form-check-label" for="mx_check5">Firewalled Services</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check6" value="getNetworkApplianceFirewallInboundFirewallRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check6">Inbound Firewall Rules</label>
+                        </div>
+                        <div class="octet-options" id="inbound_firewall_octets">
+                              <div class="form-group">
+                                <label for="inbound_firewall_source_octet">Inbound Firewall Source IP Octet</label>
+                                <select  class="form-control" id="inbound_firewall_source_octet" name="inbound_firewall_source_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="inbound_firewall_destination_octet">Inbound Firewall Destination IP Octet</label>
+                                <select class="form-control" id="inbound_firewall_destination_octet" name="inbound_firewall_destination_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                         <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check7" value="getNetworkApplianceFirewallL7FirewallRules">
+                             <label class="form-check-label" for="mx_check7">L7 Firewall Rules</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check8" value="getNetworkApplianceFirewallOneToManyNatRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check8">One-to-Many NAT Rules</label>
+                        </div>
+                        <div class="octet-options" id="one_to_many_nat_octets">
+                            <div class="form-group">
+                                <label for="one_to_many_nat_lan_ip_octet">One-to-Many NAT LAN IP Octet</label>
+                                <select class="form-control" id="one_to_many_nat_lan_ip_octet" name="one_to_many_nat_lan_ip_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check9" value="getNetworkApplianceFirewallOneToOneNatRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check9">One-to-One NAT Rules</label>
+                        </div>
+                        <div class="octet-options" id="one_to_one_nat_octets">
+                            <div class="form-group">
+                                <label for="one_to_one_nat_lan_ip_octet">One-to-One NAT LAN IP Octet</label>
+                                <select class="form-control" id="one_to_one_nat_lan_ip_octet" name="one_to_one_nat_lan_ip_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check10" value="getNetworkApplianceFirewallPortForwardingRules" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check10">Port Forwarding Rules</label>
+                        </div>
+                        <div class="octet-options" id="port_forwarding_octets">
+                            <div class="form-group">
+                                <label for="port_forwarding_lan_ip_octet">Port Forwarding LAN IP Octet</label>
+                                <select class="form-control" id="port_forwarding_lan_ip_octet" name="port_forwarding_lan_ip_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                     <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                             </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check11" value="getNetworkAppliancePorts">
+                            <label class="form-check-label" for="mx_check11">Appliance Ports</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check12" value="getNetworkApplianceSecurityIntrusion">
+                             <label class="form-check-label" for="mx_check12">Security Intrusion</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check13" value="getNetworkApplianceSecurityMalware">
+                            <label class="form-check-label" for="mx_check13">Security Malware</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check14" value="getNetworkApplianceSingleLan">
+                            <label class="form-check-label" for="mx_check14">Single LAN</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check15" value="getNetworkApplianceStaticRoutes">
+                            <label class="form-check-label" for="mx_check15">Static Routes</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check16" value="getNetworkApplianceTrafficShaping">
+                            <label class="form-check-label" for="mx_check16">Global Bandwidth Limits</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check17"  value="getNetworkApplianceTrafficShapingCustomPerformanceClasses">
+                            <label class="form-check-label" for="mx_check17">Custom Performance Classes</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check18" value="getNetworkApplianceTrafficShapingRules">
+                            <label class="form-check-label" for="mx_check18">Traffic Shaping Rules QOS</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check19" value="getNetworkApplianceTrafficShapingUplinkBandwidth">
+                            <label class="form-check-label" for="mx_check19">Uplink Bandwidth</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check20" value="getNetworkApplianceTrafficShapingUplinkSelection">
+                            <label class="form-check-label" for="mx_check20">SD-WAN Policies and Uplink Selection</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check21" value="getNetworkApplianceVlans" onchange="toggleOctetOptions()">
+                            <label class="form-check-label" for="mx_check21">VLANs and DHCP</label>
+                        </div>
+                        <div class="octet-options" id="vlans_octets">
+                            <div class="form-group">
+                                <label for="vlans_subnet_octet">VLANs Subnet Octet</label>
+                                <select class="form-control" id="vlans_subnet_octet" name="vlans_subnet_octet">
+                                    <option value="1">First Octet</option>
+                                    <option value="2">Second Octet</option>
+                                    <option value="3">Third Octet</option>
+                                    <option value="4">Fourth Octet</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check23" value="getNetworkApplianceVpnSiteToSiteVpn">
+                            <label class="form-check-label" for="mx_check23">Site-to-Site VPN</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check24" value="getNetworkApplianceWarmSpare">
+                            <label class="form-check-label" for="mx_check24">Warm Spare</label>
+                        </div>
+                        <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check25" value="getNetworkApplianceSettings">
+                        <label class="form-check-label" for="mx_check25">Client Tracking, Deployment Mode, Dynamic DNS</label>
+                    </div>
+                    <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="mx_checks[]" id="mx_check26" value="getOrganizationApplianceVpnThirdPartyVPNPeers">
+                    <label class="form-check-label" for="mx_check26">Non-Meraki VPN</label>
+                </div>
+
+
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item" id="select_all_mx">Select All</button>
+                        <button type="button" class="dropdown-item" id="unselect_all_mx">Unselect All</button> 
+
+                    </div>
+
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="ms_checks">MS Checks</label>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="msDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Select MS Checks
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="msDropdown">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check1" value="getNetworkSwitchAccessControlLists">
+                            <label class="form-check-label" for="ms_check1">Switch Access Control Lists</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check2" value="getNetworkSwitchDhcpServerPolicy">
+                            <label class="form-check-label" for="ms_check2">Switch DHCP Server Policy</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check3" value="getNetworkSwitchDscpToCosMappings">
+                            <label class="form-check-label" for="ms_check3">Switch DSCP to CoS Mappings</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check4" value="getNetworkSwitchMtu">
+                            <label class="form-check-label" for="ms_check4">Switch MTU</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check5" value="getNetworkSwitchPortSchedules">
+                            <label class="form-check-label" for="ms_check5">Switch Port Schedules</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check6" value="getNetworkSwitchQosRules">
+                            <label class="form-check-label" for="ms_check6">Switch QoS Rules</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check7" value="getNetworkSwitchRoutingOspf">
+                            <label class="form-check-label" for="ms_check7">Switch OSPF Routing</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check8" value="getNetworkSwitchSettings">
+                            <label class="form-check-label" for="ms_check8">Switch Settings</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check9" value="getNetworkSwitchStormControl">
+                            <label class="form-check-label" for="ms_check9">Switch Storm Control</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ms_checks[]" id="ms_check10" value="getNetworkSwitchStp">
+                            <label class="form-check-label" for="ms_check10">Switch STP</label>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item" id="select_all_ms">Select All</button>
+                        <button type="button" class="dropdown-item" id="unselect_all_ms">Unselect All</button>
+                    </div>
+                </div>
+            </div>
+<!-- MR Checks Dropdown Section -->
+<!-- MR Checks Dropdown Section -->
+<div class="form-group">
+    <label for="mr_checks">MR Checks</label>
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="mrDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Select MR Checks
+        </button>
+        <div class="dropdown-menu" aria-labelledby="mrDropdown">
+            <!-- MR checks with corrected method names -->
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check1" value="getNetworkWirelessSsids">
+                <label class="form-check-label" for="mr_check1">Wireless SSIDs Configuration</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check2" value="getNetworkWirelessRfProfiles">
+                <label class="form-check-label" for="mr_check2">RF Profiles</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check3" value="getNetworkWirelessSettings">
+                <label class="form-check-label" for="mr_check3">Wireless Settings</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check4" value="getNetworkWirelessBilling">
+                <label class="form-check-label" for="mr_check4">Wireless Billing Settings</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check5" value="getNetworkWirelessAlternateManagementInterface">
+                <label class="form-check-label" for="mr_check5">Alternate Management Interface</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check6" value="getNetworkWirelessBluetoothSettings">
+                <label class="form-check-label" for="mr_check6">Bluetooth Settings</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check17" value="getNetworkWirelessEthernetPortsProfiles">
+                <label class="form-check-label" for="mr_check17">Wireless Ethernet Ports Profiles</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check13" value="getNetworkWirelessSsidFirewallL3FirewallRules">
+                <label class="form-check-label" for="mr_check13">SSID L3 Firewall Rules</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check14" value="getNetworkWirelessSsidFirewallL7FirewallRules">
+                <label class="form-check-label" for="mr_check14">SSID L7 Firewall Rules</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check15" value="getNetworkWirelessSsidTrafficShapingRules">
+                <label class="form-check-label" for="mr_check15">SSID Traffic Shaping Rules</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="mr_checks[]" id="mr_check16" value="getNetworkWirelessSsidIdentityPsks">
+                <label class="form-check-label" for="mr_check16">SSID Identity PSKs</label>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item" id="select_all_mr">Select All</button>
+            <button type="button" class="dropdown-item" id="unselect_all_mr">Unselect All</button>
+        </div>
+    </div>
+</div>
+            <button type="submit" class="btn btn-custom w-100">Next</button>
+        </form>
+    </div>
+<script>
+    document.getElementById('select_all_mx').addEventListener('click', function() {
+        const mxChecks = document.querySelectorAll('input[name="mx_checks[]"]');
+        mxChecks.forEach(check => check.checked = true);
+        toggleOctetOptions();
+    });
+
+    document.getElementById('unselect_all_mx').addEventListener('click', function() {
+        const mxChecks = document.querySelectorAll('input[name="mx_checks[]"]');
+        mxChecks.forEach(check => check.checked = false);
+        toggleOctetOptions();
+    });
+
+    document.getElementById('select_all_ms').addEventListener('click', function() {
+        const msChecks = document.querySelectorAll('input[name="ms_checks[]"]');
+        msChecks.forEach(check => check.checked = true);
+    });
+
+    document.getElementById('unselect_all_ms').addEventListener('click', function() {
+        const msChecks = document.querySelectorAll('input[name="ms_checks[]"]');
+        msChecks.forEach(check => check.checked = false);
+    });
+
+    document.getElementById('select_all_mr').addEventListener('click', function() {
+        const mrChecks = document.querySelectorAll('input[name="mr_checks[]"]');
+        mrChecks.forEach(check => check.checked = true);
+    });
+
+    document.getElementById('unselect_all_mr').addEventListener('click', function() {
+        const mrChecks = document.querySelectorAll('input[name="mr_checks[]"]');
+        mrChecks.forEach(check => check.checked = false);
+    });
+
+    // Prevent dropdown from closing when clicking inside
+    document.querySelectorAll('.dropdown-menu').forEach(function(dropdown) {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+function toggleOctetOptions() {
+    const cellularFirewallChecked = document.getElementById('mx_check3').checked;
+    const l3FirewallChecked = document.getElementById('mx_check4').checked;
+    const inboundFirewallChecked = document.getElementById('mx_check6').checked;
+    const oneToManyNatChecked = document.getElementById('mx_check8').checked;
+    const oneToOneNatChecked = document.getElementById('mx_check9').checked;
+    const portForwardingChecked = document.getElementById('mx_check10').checked;
+    const vlansChecked = document.getElementById('mx_check21').checked;
+    const inboundCellularFirewallChecked = document.getElementById('mx_check28').checked;
+
+    document.getElementById('cellular_firewall_octets').style.display = cellularFirewallChecked ? 'block' : 'none';
+    document.getElementById('l3_firewall_octets').style.display = l3FirewallChecked ? 'block' : 'none';
+    document.getElementById('inbound_firewall_octets').style.display = inboundFirewallChecked ? 'block' : 'none';
+    document.getElementById('one_to_many_nat_octets').style.display = oneToManyNatChecked ? 'block' : 'none';
+    document.getElementById('one_to_one_nat_octets').style.display = oneToOneNatChecked ? 'block' : 'none';
+    document.getElementById('port_forwarding_octets').style.display = portForwardingChecked ? 'block' : 'none';
+    document.getElementById('vlans_octets').style.display = vlansChecked ? 'block' : 'none';
+    document.getElementById('inbound_cellular_firewall_octets').style.display = inboundCellularFirewallChecked ? 'block' : 'none';
+}
+
+// Initial call to set the correct state on page load
+toggleOctetOptions();
+
+
+</script>
+</body>
+</html>
